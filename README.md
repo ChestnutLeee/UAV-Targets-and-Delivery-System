@@ -5,7 +5,9 @@ Design of a Machine Vision-Based UAV Dynamic Target Precision Recognition and De
     Video link:https://www.douyin.com/user/self?modal_id=7643854421575211700
 
 Simulation platform: Based on Windows11 wsl（Ubuntu 22.04）；
+
 CPU：i512500h  GPU：NVIDIA 5060/NVIDIA 3050 laptop；
+
 Real Machine Platform：Jetson orin nano 8G + px4;
     
 <img width="1192" height="667" alt="image" src="https://github.com/user-attachments/assets/0efbe9eb-6cff-4266-8ec1-b33b05ac6045" />
