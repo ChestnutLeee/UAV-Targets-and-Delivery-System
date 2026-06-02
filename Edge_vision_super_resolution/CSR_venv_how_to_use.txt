@@ -1,0 +1,8 @@
+E:
+
+cd csr_project
+
+csr_venv\Scripts\activate.bat
+
+退出
+deactivate
