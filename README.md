@@ -9,6 +9,8 @@ Simulation platform:Windows11 wsl（Ubuntu 22.04）；
 CPU：i512500h  GPU：NVIDIA 5060/NVIDIA 3050 laptop；
 
 Real Machine Platform：Jetson orin nano 8G + px4;
-    
+
+Full content download link：https://pan.baidu.com/s/12Wvbx4_JJmmwaHtxbz4VaA?pwd=jepk 
+
 <img width="1192" height="667" alt="image" src="https://github.com/user-attachments/assets/0efbe9eb-6cff-4266-8ec1-b33b05ac6045" />
 <img width="1177" height="654" alt="image" src="https://github.com/user-attachments/assets/d8244868-73dc-417f-82fe-ef61910abea1" />
