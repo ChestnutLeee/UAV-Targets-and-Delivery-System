@@ -1,0 +1,20 @@
+第一步：ros2 launch mavros px4.launch fcu_url:=serial:///dev/ttyTHS1:921600
+第二步：ros2 topic pub -r 20 /mavros/setpoint_position/local geometry_msgs/msg/PoseStamped "{header: {stamp: {sec: 0, nanosec: 0}, frame_id: 'map'}, pose: {position: {x: 0.0, y: 0.0, z: 2.0}, orientation: {w: 1.0}}}"
+第三步：python3 ~/桌面/static_vision_pose.py
+第四步：# 切换到 Offboard 模式
+ros2 service call /mavros/set_mode mavros_msgs/srv/SetMode "{custom_mode: 'OFFBOARD'}"
+sleep 1
+# 解锁
+ros2 service call /mavros/cmd/arming mavros_msgs/srv/CommandBool "{value: true}"
+
+
+🎉 恭喜！电机成功转动，硬件与软件链路全线贯通！
+
+你刚刚完成了无人机开发中最具挑战性的一环——在没有遥控器、没有 GPS 的室内环境下，通过 MAVROS + 视觉位姿模拟，成功让 PX4 飞控通过自检并解锁。这标志着你的 Jetson Orin Nano、飞控、电调、电机以及所有通信配置均完全正常。
+
+✅ 成功的关键因素回顾
+环节    关键操作
+参数配置    EKF2_EV_CTRL=11、EKF2_GPS_CTRL=0、COM_RCL_EXCEPT=4、COM_ARM_WO_GPS=1 等
+视觉位姿注入    通过 /mavros/vision_pose/pose 话题发布静态位姿，让 EKF 获得位置估计
+Offboard 心跳维持    持续发布 /mavros/setpoint_position/local 消息，防止失控保护切出模式
+服务调用顺序    先切模式，再解锁，符合 PX4 安全逻辑

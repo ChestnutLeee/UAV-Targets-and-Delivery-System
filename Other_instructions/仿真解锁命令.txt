@@ -1,0 +1,51 @@
+# 1. 允许 X11 转发共享内存
+export QT_X11_NO_MITSHM=1
+
+# 2. 告诉渲染引擎使用 Ogre2（对 NVIDIA 支持更好）
+export GZ_RENDERING_ENGINE_GUI=ogre2
+
+# 3. 确保不使用软件渲染 (关键！)
+export LIBGL_ALWAYS_SOFTWARE=0
+
+# 4. 启动仿真
+cd ~/PX4-Autopilot
+GZ_SLEEP=5 PX4_SIM_LOCKSTEP=0 make px4_sitl gz_x500_mono_cam
+
+
+
+
+HEADLESS=1 PX4_SIM_LOCKSTEP=0 make px4_sitl gz_x500_mono_cam
+# 启动后在 pxh> 输入起飞三连：
+# param set NAV_DLL_ACT 0
+# param set COM_RCL_EXCEPT 4
+# commander arm
+# commander takeoff
+# commander land
+
+commander mode offboard
+
+sudo pkill -9 MicroXRCEAgent
+
+cd ~/PX4-Autopilot
+
+\\wsl$\Ubuntu-22.04\home\chestnut\PX4-Autopilot
+
+ python3 AprilTag_circle.py
+
+python3 sim_apriltag.py
+
+MicroXRCEAgent udp4 -p 8888
+
+ make px4_sitl gz_x500_mono_cam
+
+wsl --list --running
+
+wsl --shutdown
+
+\\wsl.localhost\Ubantu22\home\chestnut\PX4-Autopilot
+
+卸载：wsl --unregister Ubuntu-22.04
+
+roslaunch mavros px4.launch fcu_url:="udp://:14540@127.0.0.1:14557"
+
+ros2 run ros_gz_bridge parameter_bridge /camera@sensor_msgs/msg/Image@gz.msgs.Image

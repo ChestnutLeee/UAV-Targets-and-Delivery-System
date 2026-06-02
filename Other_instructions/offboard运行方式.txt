@@ -1,0 +1,7 @@
+终端 1：启动 MAVROS（必须保持运行）
+ros2 launch mavros px4.launch fcu_url:=serial:///dev/ttyTHS1:921600
+
+终端 2：直接运行脚本
+python3 ~/桌面/xxx.py
+
+python3 ~/桌面/Takeoff.py

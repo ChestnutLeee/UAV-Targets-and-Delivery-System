@@ -1,0 +1,114 @@
+无人机无线地面站连接配置记录
+1. 硬件与网络环境
+组件	配置
+机载计算机	NVIDIA Jetson Orin Nano
+飞控	PX4 (固件版本 1.16.1rc)
+飞控与Jetson连接	UART串口 (/dev/ttyTHS1)，波特率 921600
+地面站电脑	Windows 11 笔记本电脑
+网络模式	电脑开启移动热点，Jetson 通过 Wi-Fi 连接该热点
+电脑热点信息：
+
+名称：DESKTOP-FEU3DUR 0729
+
+密码：lxf12345
+
+电脑IP地址：192.168.137.1
+
+Jetson 分配IP：192.168.137.x（DHCP动态获取）
+
+2. Jetson 端软件配置
+2.1 安装 mavlink-routerd
+bash
+# 安装依赖
+sudo apt update
+sudo apt install git meson ninja-build pkg-config gcc g++ systemd
+
+# 克隆源码并编译
+git clone https://github.com/mavlink-router/mavlink-router.git
+cd mavlink-router
+git submodule update --init --recursive
+meson setup build .
+ninja -C build
+sudo ninja -C build install
+2.2 配置 mavlink-routerd
+创建配置文件 /etc/mavlink-router/main.conf：
+
+bash
+sudo tee /etc/mavlink-router/main.conf > /dev/null << 'EOF'
+[UartEndpoint to_fcu]
+Device = /dev/ttyTHS1
+Baud = 921600
+
+[UdpEndpoint qgc]
+Mode = Normal
+Address = 192.168.137.1
+Port = 14550
+EOF
+说明：Address 填写电脑热点的 IP 地址（Windows 移动热点默认为 192.168.137.1），Port 为 QGroundControl 监听的 UDP 端口。
+
+2.3 启动并设置开机自启
+bash
+# 启动服务
+sudo systemctl start mavlink-router
+
+# 设置开机自启
+sudo systemctl enable mavlink-router
+
+# 检查状态
+sudo systemctl status mavlink-router
+3. Jetson 连接电脑热点
+3.1 扫描并连接热点
+bash
+# 开启 Wi-Fi 射频
+nmcli radio wifi on
+
+# 扫描可用热点
+nmcli dev wifi list
+
+# 连接指定热点（自动保存）
+sudo nmcli dev wifi connect "DESKTOP-FEU3DUR 0729" password "lxf12345"
+3.2 验证连接
+bash
+# 查看当前连接的 Wi-Fi
+nmcli connection show --active
+
+# 查看获得的 IP 地址
+hostname -I
+预期输出应包含 192.168.137.x 的 IP 地址。
+
+4. 地面站（QGroundControl）配置
+确保电脑已开启移动热点，且 Jetson 已连接。
+
+临时关闭 Windows 防火墙（或添加入站规则允许 UDP 14550 端口）。
+
+打开 QGroundControl，进入 应用程序设置 → 通讯连接。
+
+删除或禁用旧的连接，点击 添加，按以下参数配置：
+
+名称：任意（如 Jetson_UDP）
+
+类型：UDP
+
+端口：14550
+
+服务器地址：留空
+
+保存配置，QGC 主界面应显示飞控状态（如“Ready to Fly”）。
+
+5. 每次开机后的自动连接流程
+完成以上配置后，每次飞行测试只需执行以下三步：
+
+步骤	操作	说明
+1	电脑开启移动热点	确保热点名称和密码保持不变
+2	无人机上电	飞控与 Jetson 同时启动
+3	等待约 1 分钟，打开 QGC	Jetson 自动连接热点、mavlink-routerd 自动运行，QGC 自动接收数据
+6. 常见故障排查
+故障现象	排查命令	解决方法
+QGC 无数据	sudo systemctl status mavlink-router	若未运行，执行 sudo systemctl start mavlink-router
+Jetson 未获取 IP	hostname -I	手动连接热点：nmcli dev wifi connect "DESKTOP-FEU3DUR 0729" password "lxf12345"
+数据包未到达电脑	在 Jetson 执行 sudo tcpdump -i wlan0 udp port 14550 -c 5	检查 Windows 防火墙是否关闭
+服务启动但串口报错	查看日志 journalctl -u mavlink-router -f	确认 /dev/ttyTHS1 未被占用，波特率与飞控一致
+7. 备注
+若电脑热点 IP 发生变化（如非 192.168.137.1），需相应修改 /etc/mavlink-router/main.conf 中的 Address 字段并重启服务。
+
+Windows 防火墙可能会在系统更新后重新开启，建议将 QGC 的 UDP 14550 端口添加为永久入站规则，或每次测试前手动关闭防火墙。

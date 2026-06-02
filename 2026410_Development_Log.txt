@@ -1,0 +1,109 @@
+今日进展复盘：无人机全无线开发与飞行环境搭建
+一、目标回顾
+控制链路无线化：让 Jetson 通过 MAVROS 控制飞控，替代原有的 USB 有线连接或不可靠的 uXRCE-DDS 方案。
+
+地面站无线化：让 QGroundControl 通过 Wi-Fi 无线连接飞控，摆脱 USB 线的束缚。
+
+开发调试无线化：让 Windows 11 笔记本电脑通过 SSH 无线登录 Jetson，实现远程终端操作。
+
+二、实现过程记录
+1. 实现 MAVROS 控制飞控（控制链路无线化）
+背景：前期尝试 uXRCE-DDS 遇到飞控端客户端不稳定、参数配置复杂等问题，决定迁移至更成熟的 MAVROS 方案。
+
+关键步骤：
+
+安装 MAVROS：
+
+bash
+sudo apt install ros-humble-mavros ros-humble-mavros-extras
+sudo /opt/ros/humble/lib/mavros/install_geographiclib_datasets.sh
+配置飞控参数（在 QGC 中）：
+
+MAV_1_CONFIG = TELEM 2 (102) — 将 MAVLink 数据指定到连接 Jetson 的串口
+
+SER_TEL2_BAUD = 921600 — 波特率与 Jetson 端一致
+
+COM_RCL_EXCEPT = 4 — 允许无遥控器解锁
+
+COM_ARM_WO_GPS = 1 — 允许无 GPS 解锁
+
+EKF2_EV_CTRL = 11 — 启用视觉位置融合
+
+EKF2_GPS_CTRL = 0 — 禁用 GPS
+
+启动 MAVROS：
+
+bash
+ros2 launch mavros px4.launch fcu_url:=serial:///dev/ttyTHS1:921600
+验证通信：ros2 topic echo /mavros/state 确认 connected: true
+
+成果：Python 脚本通过 geometry_msgs/PoseStamped 和 mavros_msgs 服务即可控制飞控模式切换、解锁与飞行。
+
+2. 实现 QGC 无线连接飞控（地面站无线化）
+原理：利用 Jetson 作为数据转发器，将飞控串口数据通过 UDP 广播到电脑端 QGC。
+
+关键步骤：
+
+安装 mavlink-routerd（源码编译）：
+
+bash
+git clone https://github.com/mavlink-router/mavlink-router.git
+cd mavlink-router
+meson setup build . && ninja -C build && sudo ninja -C build install
+配置文件 /etc/mavlink-router/main.conf：
+
+ini
+[UartEndpoint to_fcu]
+Device = /dev/ttyTHS1
+Baud = 921600
+
+[UdpEndpoint qgc]
+Mode = Normal
+Address = 192.168.137.1   # 电脑热点 IP
+Port = 14550
+开机自启：sudo systemctl enable mavlink-router
+
+电脑端：开启移动热点，Jetson 连接该热点（nmcli dev wifi connect ...），QGC 添加 UDP 监听端口 14550，Server Address 留空。
+
+成果：无人机开机后，电脑 QGC 自动连接，实时显示飞控状态，彻底摆脱 USB 线。
+
+3. 实现 Windows 11 SSH 无线登录 Jetson（开发调试无线化）
+需求：在无人机飞行时，仍能通过终端查看日志或临时修改代码。
+
+关键步骤：
+
+Jetson 端开启 SSH 服务：
+
+bash
+sudo systemctl enable ssh
+sudo systemctl start ssh
+Windows 端安装 SSH 客户端：Windows 11 自带 ssh 命令（PowerShell 或 CMD 均可使用）。
+
+连接方法：
+
+bash
+ssh jetson@192.168.137.x   # 替换为 Jetson 实际 IP
+免密登录（可选）：使用 ssh-keygen 生成密钥对，将公钥追加到 Jetson 的 ~/.ssh/authorized_keys。
+
+成果：可在 Windows 终端中无线访问 Jetson，执行 ros2 topic list、systemctl status mavlink-router 等命令，调试效率大幅提升。
+
+三、最终系统工作流程
+步骤	操作	备注
+1	Windows 11 开启移动热点（名称/密码固定）	电脑 IP 固定为 192.168.137.1
+2	无人机上电	Jetson 自动连接热点，mavlink-router 自启
+3	Windows 打开 QGC	UDP 14550 自动接收飞控数据
+4	Windows SSH 登录 Jetson（可选）	用于启动 MAVROS 或运行 Python 脚本
+5	Jetson 运行视觉追踪脚本	无人机完成自主起飞、搜索、跟踪任务
+四、关键配置文件清单
+文件/服务	路径/命令	作用
+mavlink-router 配置	/etc/mavlink-router/main.conf	定义串口转 UDP 的规则
+mavlink-router 服务	sudo systemctl enable mavlink-router	开机自启数据转发
+SSH 服务	sudo systemctl enable ssh	开机自启 SSH 远程登录
+Wi-Fi 自动连接	nmcli connection 已保存	Jetson 开机自动连接已知热点
+五、故障排查备忘录
+现象	可能原因	解决命令
+QGC 无数据	Windows 防火墙拦截	关闭防火墙或添加 UDP 14550 入站规则
+Jetson 未连上热点	Wi-Fi 服务未启动	nmcli radio wifi on；nmcli dev wifi connect ...
+MAVROS 无法连接飞控	串口被占用或参数错误	sudo lsof /dev/ttyTHS1；检查 MAV_1_CONFIG
+SSH 连接被拒	SSH 服务未启动	sudo systemctl start ssh
+以上记录覆盖了今日实现的全无线化开发与飞行环境。如果需要进一步整理成论文附录中的“系统配置”章节，我可以帮你提取关键参数表格和技术要点。

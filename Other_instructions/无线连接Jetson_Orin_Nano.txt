@@ -1,0 +1,19 @@
+1.打开笔记本的热点
+
+2。请在你的 Windows 电脑上打开命令提示符（CMD）或 PowerShell，输入以下命令：
+
+bash
+ssh jetson@192.168.137.41
+
+退出 SSH 的正确方法
+直接在当前终端输入以下任意一个命令，然后按回车即可安全退出：
+
+bash
+exit
+或者
+
+bash
+logout
+你也可以直接按下键盘快捷键 Ctrl + D（按住 Ctrl 键再按一下 D 键），效果和输入 exit 完全一样。
+
+退出后，终端会显示类似 Connection to 192.168.137.41 closed. 的提示，然后回到你本地的 PowerShell 提示符 PS C:\Users\XiaofengLee\Desktop>。

@@ -1,0 +1,35 @@
+你的改进版脚本已经是一个完全自包含的节点，内部已经集成了：
+
+✅ Offboard 心跳维持（control_loop 中每 0.01 秒发布位置或速度指令）
+
+✅ 静态视觉位姿发布（publish_static_vision 在 TAKEOFF 阶段以 20Hz 自动运行）
+
+✅ 模式切换与解锁（start_sequence 方法会在启动 3 秒后自动请求 OFFBOARD 并解锁）
+
+因此，你不再需要手动执行之前的第二、三、四步。新的启动流程简化为：
+
+🚀 简化后的启动流程
+终端 1：启动 MAVROS（必须保持运行）
+
+bash
+ros2 launch mavros px4.launch fcu_url:=serial:///dev/ttyTHS1:921600
+终端 2：直接运行改进版脚本
+
+bash
+python3 ~/桌面/integrated_drone_mission_CUDA_MAVROS_improved.py
+脚本会自动完成所有初始化、起飞、视觉搜索和追踪逻辑。
+
+⚠️ 首次运行前的最后确认
+检查项	状态
+螺旋桨已拆除（地面测试时）	⬜ 必须
+飞控参数已按之前配置（EKF2_EV_CTRL=11、EKF2_GPS_CTRL=0、COM_RCL_EXCEPT=4 等）	⬜ 确认
+电池已连接，电调已供电	⬜ 确认
+QGC 保持打开，以便监控状态和紧急干预	⬜ 建议
+📌 如果脚本运行后电机不转
+观察 QGC 是否有红色拒绝提示（如 Arming denied: ...），记录完整文字。
+
+在 MAVLink 控制台执行 listener health_report 获取最新错误码。
+
+确保静态视觉位姿正在发布（可在 MAVLink 控制台执行 listener vehicle_visual_odometry 查看是否有数据刷新）。
+
+现在你只需两步即可启动整个系统，祝你测试顺利！🛸
